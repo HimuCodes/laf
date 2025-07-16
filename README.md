@@ -79,7 +79,17 @@ These instructions will get you a copy of the project and its dependencies in yo
     5. Set GOPATH: `export GOPATH="$HOME/go"`
 6. Compile go library:
     1. `cd laf/lorawanwrapper/utils`
-    2. `go build -o lorawanWrapper.so -buildmode=c-shared jsonUnmarshaler.go lorawanWrapper.go micGenerator.go sessionKeysGenerator.go hashGenerator.go`
+    2. `make build` (automatically detects CGO support and builds accordingly)
+    
+    **Alternative build options:**
+    - `make cgo` - Force CGO build (requires working C compiler)
+    - `make nocgo` - Force non-CGO build (command-line tool)
+    - `make test-cgo` - Test if CGO is available
+    
+    **Troubleshooting compilation issues:**
+    - If you get "64-bit mode not compiled in" error, use `make nocgo` to build without CGO
+    - If you get "buildmode=c-shared requires external (cgo) linking" error, use `make nocgo`
+    - For environments without C compiler, use `CGO_ENABLED=0 make build`
 7. Depending on which DB you'd like to use:
 
     a. PostreSQL: Follow instructions 'Install LAF using Docker' until 3rd step.
@@ -566,6 +576,71 @@ Since it is not possible to know in which frequencies LoRa devices are operating
 At least in the US915 frequency band, the first 8 channels are the most used. But there are well known implementations that use another group of channel, as for example The Things Networks, which use the second group (8-15) of channels for uplink communication.
 
 Currently we don't support other frequency bands but, with few changes to these scripts you'd be able to do this on your own :).
+
+## Troubleshooting
+
+### CGO Compilation Issues
+
+The project uses Go's CGO (C bindings) to create a shared library that can be called from Python. However, CGO requires a compatible C compiler, which may not be available in all environments.
+
+#### Common CGO Errors:
+
+1. **"cc1.exe: sorry, unimplemented: 64-bit mode not compiled in"**
+   - This indicates your C compiler doesn't support 64-bit compilation
+   - Solution: Use `make nocgo` to build without CGO
+
+2. **"buildmode=c-shared requires external (cgo) linking, but cgo is not enabled"**
+   - This occurs when CGO is disabled but you're trying to build a shared library
+   - Solution: Use `make nocgo` to build the command-line tool
+
+3. **"gcc: command not found" or similar C compiler errors**
+   - This indicates no C compiler is available
+   - Solution: Install a C compiler or use `CGO_ENABLED=0 make build`
+
+#### Build Options:
+
+The framework automatically detects CGO availability and chooses the appropriate build method:
+
+- **CGO Available**: Builds a shared library (`.so`) that provides fast C-style function calls
+- **CGO Unavailable**: Builds a command-line tool that provides the same functionality via subprocess calls
+
+#### Manual Build Control:
+
+```bash
+cd laf/lorawanwrapper/utils
+
+# Auto-detect and build (recommended)
+make build
+
+# Force CGO build (requires working C compiler)
+make cgo
+
+# Force non-CGO build (works without C compiler)
+make nocgo
+
+# Test CGO availability
+make test-cgo
+
+# Build with CGO disabled
+CGO_ENABLED=0 make build
+```
+
+#### Python Wrapper Compatibility:
+
+The Python wrapper (`LorawanWrapperNew.py`) automatically detects which build is available:
+- If `lorawanWrapper.so` exists and loads successfully, it uses CGO mode
+- If `lorawanWrapper` command-line tool exists, it uses subprocess mode
+- Provides identical API regardless of the underlying implementation
+
+### Performance Considerations:
+
+- **CGO Mode**: Faster execution, direct function calls
+- **Command-line Mode**: Slightly slower due to subprocess overhead, but more portable
+
+### Environment Variables:
+
+- `CGO_ENABLED=0`: Disables CGO support (forces command-line build)
+- `ENVIRONMENT=PROD`: Sets production log level (less verbose)
 
 ## Demo video
 
