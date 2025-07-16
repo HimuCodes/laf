@@ -1,3 +1,6 @@
+//go:build cgo
+// +build cgo
+
 //lorawanWrapper.go
 
 package main
@@ -7,7 +10,6 @@ import "C"
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"time"
 	"unsafe"
 	"math"
@@ -229,22 +231,7 @@ func generateValidMIC(dataPointer *C.char, newKeyPointer *C.char, jaKeyPointer *
 	return C.CString(signPacket(dataBytes, newKey, jaKey))
 }
 
-func returnDevEUI(dataBytes string) string {
-	var phy PHYPayload
 
-	if err := phy.UnmarshalText([]byte(dataBytes)); err != nil {
-		fmt.Println(err)
-		fmt.Println("Join request data: " + dataBytes)
-		return ""
-	}
-
-	jrPL, ok := phy.MACPayload.(*JoinRequestPayload)
-	if !ok {
-		fmt.Println("MACPayload must be a *JoinRequestPayload")
-		return "Error"
-	}
-	return fmt.Sprintf("%v", jrPL.DevEUI)
-}
 
 func reverseArray(array []byte) []byte {
 	for i, j := 0, len(array)-1; i < j; i, j = i+1, j-1 {
@@ -489,25 +476,7 @@ func testAppKeysWithJoinRequest(appKeysPointer **C.char, keysLen C.int, joinRequ
 
 }
 
-func testAppKeyWithJoinRequest(key AES128Key, phy PHYPayload, counter *int64) (string, error) {
 
-	*counter++
-
-	result, err := phy.ValidateUplinkJoinMIC(key)
-
-	if err != nil {
-		log.Error("Error validating JoinRequest MIC: ", err)
-		return "", nil
-	}
-
-	if result {
-		foundKey, _ := key.MarshalText()
-		return string(foundKey), nil
-	} else {
-		return "", nil
-	}
-
-}
 
 //export testAppKeysWithJoinAccept
 func testAppKeysWithJoinAccept(appKeysPointer **C.char, keysLen C.int, joinAcceptDataPointer *C.char, generateKeys C.int) *C.char {
@@ -630,32 +599,7 @@ func testAppKeysWithJoinAccept(appKeysPointer **C.char, keysLen C.int, joinAccep
 	}
 }
 
-func testAppKeyWithJoinAccept(key AES128Key, phy PHYPayload, counter *int64) (string, error) {
 
-	*counter++
-
-	if err := phy.DecryptJoinAcceptPayload(key); err != nil {
-		// Here we return nil instead of the error since this error is caused by a wrong key
-		return "", nil
-	}
-	joinEUI := EUI64{8, 7, 6, 5, 4, 3, 2, 1}
-	devNonce := DevNonce(258)
-
-	result, err := phy.ValidateDownlinkJoinMIC(JoinRequestType, joinEUI, devNonce, key)
-
-	if err != nil {
-		// Here we return nil instead of the error since this error is caused by a wrong key
-		//fmt.Println("Error validating Join MIC: ", err)
-		return "", nil
-	}
-
-	if result == true {
-		foundKey, _ := key.MarshalText()
-		return string(foundKey), nil
-	} else {
-		return "", nil
-	}
-}
 
 //export printPHYPayload
 func printPHYPayload(phyPointer *C.char, keyPointer *C.char) *C.char {
@@ -704,15 +648,10 @@ func printPHYPayload(phyPointer *C.char, keyPointer *C.char) *C.char {
 	return C.CString(buffer.String())
 }
 
-func setLogLevel() {
-	if env := os.Getenv("ENVIRONMENT"); env == "PROD" {
-		log.SetLevel(log.InfoLevel)
-	} else {
-		log.SetLevel(log.DebugLevel)
-	}
-}
 
-func main() {
+
+func setLogLevel() {
+	commonSetLogLevel()
 }
 
 // TO BUILD THIS LIBRARY

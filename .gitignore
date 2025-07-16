@@ -1,4 +1,28 @@
 .DS_Store
 lorawanwrapper/utils/lorawanWrapper.h
 lorawanwrapper/utils/lorawanWrapper.so
+lorawanwrapper/utils/lorawanWrapper
 *.pyc
+
+# Additional build artifacts
+*.so
+*.h
+*.tmp
+*.bak
+*.log
+
+# Python cache
+__pycache__/
+*.pyo
+
+# OS files
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+/tmp/

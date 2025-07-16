@@ -1,11 +1,6 @@
-//go:build cgo
-// +build cgo
-
 //sessionKeysGenerator.go
 
 package main
-
-import "C"
 
 import (
 	"crypto/aes"
